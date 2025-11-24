@@ -5,21 +5,24 @@ services:
   - type: web
     name: syntera-backend
     env: node
-    region: singapore
     rootDir: server
-    buildCommand: npm install && npm run build
-    startCommand: node dist/index-prod.js
     plan: free
-    envVars:
-      - key: NODE_ENV
-        value: production
+    buildCommand: |
+      npm install
+      npm run build
+    startCommand: node dist/index-prod.js
+    autoDeploy: true
 
   # ======================
-  # FRONTEND (REACT + VITE)
+  # FRONTEND (VITE REACT)
   # ======================
-  - type: static_site
+  - type: web
     name: syntera-frontend
+    env: node
     rootDir: client
-    buildCommand: npm install && npm run build
-    staticPublishPath: dist
     plan: free
+    buildCommand: |
+      npm install
+      npm run build
+    startCommand: npm run preview -- --port 10000
+    autoDeploy: true

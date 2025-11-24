@@ -8,7 +8,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import { Send, AlertTriangle, ThumbsUp } from 'lucide-react';
+import { Send, AlertTriangle } from 'lucide-react';
+import { useAuth } from '@/lib/auth-context';
+import { useMutation } from '@tanstack/react-query';
 
 const feedbackSchema = z.object({
   subject: z.string().min(5, "Subject must be at least 5 characters"),
@@ -19,23 +21,48 @@ const feedbackSchema = z.object({
 
 export default function FeedbackPage() {
   const { toast } = useToast();
+  const { user } = useAuth();
   const form = useForm<z.infer<typeof feedbackSchema>>({
     resolver: zodResolver(feedbackSchema),
     defaultValues: {
       subject: "",
       type: "complaint",
       message: "",
-      email: "",
+      email: user?.email || "",
+    },
+  });
+
+  const submitFeedbackMutation = useMutation({
+    mutationFn: async (data: z.infer<typeof feedbackSchema>) => {
+      const res = await fetch('/api/feedback', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ...data,
+          userId: user?.id,
+        }),
+      });
+      if (!res.ok) throw new Error('Failed to submit feedback');
+      return res.json();
+    },
+    onSuccess: (_, data) => {
+      toast({
+        title: "Feedback Sent",
+        description: `We've sent your ${data.type} to the company email. We'll get back to you at ${data.email}.`,
+      });
+      form.reset();
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to submit feedback. Please try again.",
+        variant: "destructive",
+      });
     },
   });
 
   const onSubmit = (data: z.infer<typeof feedbackSchema>) => {
-    console.log("Feedback sent:", data);
-    toast({
-      title: "Feedback Sent",
-      description: `We've sent your ${data.type} to the company email. We'll get back to you at ${data.email}.`,
-    });
-    form.reset();
+    submitFeedbackMutation.mutate(data);
   };
 
   return (
@@ -124,8 +151,13 @@ export default function FeedbackPage() {
                 )}
               />
 
-              <Button type="submit" className="w-full text-lg h-12 gap-2">
-                <Send className="w-4 h-4" /> Send to Company
+              <Button 
+                type="submit" 
+                className="w-full text-lg h-12 gap-2"
+                disabled={submitFeedbackMutation.isPending}
+              >
+                <Send className="w-4 h-4" /> 
+                {submitFeedbackMutation.isPending ? 'Sending...' : 'Send to Company'}
               </Button>
             </form>
           </Form>

@@ -3,49 +3,75 @@ import { Send, Bot, User as UserIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useAuth } from '@/lib/auth-context';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 
 interface Message {
   id: number;
   text: string;
   sender: 'user' | 'agent';
-  timestamp: Date;
+  createdAt: Date;
 }
 
 export default function SupportPage() {
   const { user } = useAuth();
-  const [messages, setMessages] = useState<Message[]>([
-    { id: 1, text: "Hello! Welcome to Syntera 24/7 Support. How can I help you today?", sender: 'agent', timestamp: new Date() }
-  ]);
   const [inputValue, setInputValue] = useState("");
   const scrollRef = useRef<HTMLDivElement>(null);
+  const queryClient = useQueryClient();
+
+  const { data: messages = [] } = useQuery({
+    queryKey: ['messages', user?.id],
+    queryFn: async () => {
+      if (!user?.id) return [];
+      const res = await fetch(`/api/messages/${user.id}`);
+      const data = await res.json();
+      return data.map((msg: any) => ({
+        ...msg,
+        createdAt: new Date(msg.createdAt)
+      }));
+    },
+    enabled: !!user?.id,
+  });
+
+  const sendMessageMutation = useMutation({
+    mutationFn: async (text: string) => {
+      const res = await fetch('/api/messages', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId: user?.id,
+          text,
+          sender: 'user',
+        }),
+      });
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['messages', user?.id] });
+      
+      setTimeout(() => {
+        fetch('/api/messages', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            userId: user?.id,
+            text: "Thank you for your message. An agent is reviewing your request and will reply shortly.",
+            sender: 'agent',
+          }),
+        }).then(() => {
+          queryClient.invalidateQueries({ queryKey: ['messages', user?.id] });
+        });
+      }, 1500);
+    },
+  });
 
   const sendMessage = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!inputValue.trim()) return;
-
-    const newUserMsg: Message = {
-      id: Date.now(),
-      text: inputValue,
-      sender: 'user',
-      timestamp: new Date()
-    };
-
-    setMessages(prev => [...prev, newUserMsg]);
+    if (!inputValue.trim() || !user) return;
+    sendMessageMutation.mutate(inputValue);
     setInputValue("");
-
-    // Mock auto-response
-    setTimeout(() => {
-      const responseMsg: Message = {
-        id: Date.now() + 1,
-        text: "Thank you for your message. An agent is reviewing your request and will reply shortly.",
-        sender: 'agent',
-        timestamp: new Date()
-      };
-      setMessages(prev => [...prev, responseMsg]);
-    }, 1500);
   };
 
   useEffect(() => {
@@ -53,6 +79,22 @@ export default function SupportPage() {
       scrollRef.current.scrollIntoView({ behavior: "smooth" });
     }
   }, [messages]);
+
+  useEffect(() => {
+    if (user?.id && messages.length === 0) {
+      fetch('/api/messages', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId: user.id,
+          text: "Hello! Welcome to Syntera 24/7 Support. How can I help you today?",
+          sender: 'agent',
+        }),
+      }).then(() => {
+        queryClient.invalidateQueries({ queryKey: ['messages', user.id] });
+      });
+    }
+  }, [user?.id]);
 
   return (
     <div className="max-w-4xl mx-auto h-[80vh]">
@@ -74,7 +116,7 @@ export default function SupportPage() {
         <CardContent className="flex-1 p-0 flex flex-col overflow-hidden">
           <ScrollArea className="flex-1 p-4">
             <div className="space-y-4">
-              {messages.map((msg) => (
+              {messages.map((msg: any) => (
                 <div
                   key={msg.id}
                   className={`flex ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}
@@ -96,7 +138,7 @@ export default function SupportPage() {
                     >
                       {msg.text}
                       <div className={`text-[10px] mt-1 opacity-70 ${msg.sender === 'user' ? 'text-right' : 'text-left'}`}>
-                        {msg.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                        {new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                       </div>
                     </div>
                   </div>
@@ -112,8 +154,9 @@ export default function SupportPage() {
                 onChange={(e) => setInputValue(e.target.value)}
                 placeholder="Type your message..."
                 className="flex-1"
+                disabled={!user}
               />
-              <Button type="submit" size="icon" disabled={!inputValue.trim()}>
+              <Button type="submit" size="icon" disabled={!inputValue.trim() || !user}>
                 <Send className="w-4 h-4" />
               </Button>
             </form>

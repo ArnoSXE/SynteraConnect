@@ -3,6 +3,7 @@ import { useAuth } from '@/lib/auth-context';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { BarChart3, Users, TrendingUp, MessageSquare, Clock, DollarSign, ArrowUpRight } from 'lucide-react';
+import { useQuery } from '@tanstack/react-query';
 
 export default function Dashboard() {
   const { user } = useAuth();
@@ -11,6 +12,15 @@ export default function Dashboard() {
 
   const isBusiness = user.type === 'business';
   const isSales = isBusiness && user.category === 'Sales';
+
+  const { data: salesData } = useQuery({
+    queryKey: ['sales', user.id],
+    queryFn: async () => {
+      const res = await fetch(`/api/sales/${user.id}/latest`);
+      return res.json();
+    },
+    enabled: isSales,
+  });
 
   return (
     <div className="space-y-8">
@@ -33,19 +43,23 @@ export default function Dashboard() {
             <div className="grid sm:grid-cols-3 gap-4">
               <div className="p-4 rounded-lg bg-background border border-border">
                 <p className="text-sm text-muted-foreground">Daily Revenue</p>
-                <h3 className="text-2xl font-bold text-primary">$12,450</h3>
+                <h3 className="text-2xl font-bold text-primary">
+                  ${salesData ? (salesData.revenue / 100).toFixed(2) : '12,450'}
+                </h3>
                 <span className="text-xs text-green-600 flex items-center gap-1">
                   <ArrowUpRight className="w-3 h-3" /> +15% vs yesterday
                 </span>
               </div>
               <div className="p-4 rounded-lg bg-background border border-border">
                 <p className="text-sm text-muted-foreground">Total Conversions</p>
-                <h3 className="text-2xl font-bold">145</h3>
+                <h3 className="text-2xl font-bold">{salesData?.conversions || 145}</h3>
                 <span className="text-xs text-muted-foreground">2.4% conversion rate</span>
               </div>
               <div className="p-4 rounded-lg bg-background border border-border">
                 <p className="text-sm text-muted-foreground">Avg Order Value</p>
-                <h3 className="text-2xl font-bold">$85.20</h3>
+                <h3 className="text-2xl font-bold">
+                  ${salesData ? (salesData.avgOrderValue / 100).toFixed(2) : '85.20'}
+                </h3>
                 <span className="text-xs text-green-600 flex items-center gap-1">
                    <ArrowUpRight className="w-3 h-3" /> +5% vs last week
                 </span>

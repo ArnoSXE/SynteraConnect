@@ -1,0 +1,27 @@
+services:
+  # ======================
+  # BACKEND SERVICE
+  # ======================
+  - type: web
+    name: syntera-backend
+    env: node
+    region: singapore
+    rootDir: server
+    buildCommand: npm install && npm run build
+    startCommand: node dist/index-prod.js
+    plan: free
+
+    # If you have env vars:
+    envVars:
+      - key: NODE_ENV
+        value: production
+
+  # ======================
+  # FRONTEND REACT CLIENT
+  # ======================
+  - type: static
+    name: syntera-frontend
+    rootDir: client
+    buildCommand: npm install && npm run build
+    staticPublishPath: dist
+    plan: free

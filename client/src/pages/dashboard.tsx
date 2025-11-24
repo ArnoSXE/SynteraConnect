@@ -2,7 +2,7 @@ import React from 'react';
 import { useAuth } from '@/lib/auth-context';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { BarChart3, Users, TrendingUp, MessageSquare, Clock } from 'lucide-react';
+import { BarChart3, Users, TrendingUp, MessageSquare, Clock, DollarSign, ArrowUpRight } from 'lucide-react';
 
 export default function Dashboard() {
   const { user } = useAuth();
@@ -10,6 +10,7 @@ export default function Dashboard() {
   if (!user) return null;
 
   const isBusiness = user.type === 'business';
+  const isSales = isBusiness && user.category === 'Sales';
 
   return (
     <div className="space-y-8">
@@ -20,6 +21,39 @@ export default function Dashboard() {
         </div>
         <Button>Download Report</Button>
       </div>
+
+      {isSales && (
+        <Card className="bg-primary/5 border-primary/20">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <DollarSign className="w-5 h-5 text-primary" /> Sales Tracking
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid sm:grid-cols-3 gap-4">
+              <div className="p-4 rounded-lg bg-background border border-border">
+                <p className="text-sm text-muted-foreground">Daily Revenue</p>
+                <h3 className="text-2xl font-bold text-primary">$12,450</h3>
+                <span className="text-xs text-green-600 flex items-center gap-1">
+                  <ArrowUpRight className="w-3 h-3" /> +15% vs yesterday
+                </span>
+              </div>
+              <div className="p-4 rounded-lg bg-background border border-border">
+                <p className="text-sm text-muted-foreground">Total Conversions</p>
+                <h3 className="text-2xl font-bold">145</h3>
+                <span className="text-xs text-muted-foreground">2.4% conversion rate</span>
+              </div>
+              <div className="p-4 rounded-lg bg-background border border-border">
+                <p className="text-sm text-muted-foreground">Avg Order Value</p>
+                <h3 className="text-2xl font-bold">$85.20</h3>
+                <span className="text-xs text-green-600 flex items-center gap-1">
+                   <ArrowUpRight className="w-3 h-3" /> +5% vs last week
+                </span>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         {[

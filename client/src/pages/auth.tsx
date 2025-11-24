@@ -21,6 +21,8 @@ const consumerSchema = z.object({
   password: z.string().min(8, "Password must be exactly 8 digits").max(8, "Password must be exactly 8 digits").regex(/^\d+$/, "Password must be numbers only"),
 });
 
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+
 // Business Schema
 const businessSchema = z.object({
   businessName: z.string().min(2, "Business name is required"),
@@ -205,9 +207,20 @@ export default function AuthPage() {
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>Business Category</FormLabel>
-                        <FormControl>
-                          <Input placeholder="Retail, Tech, Services..." {...field} />
-                        </FormControl>
+                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select a category" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            <SelectItem value="Sales">Sales</SelectItem>
+                            <SelectItem value="Retail">Retail</SelectItem>
+                            <SelectItem value="Technology">Technology</SelectItem>
+                            <SelectItem value="Services">Services</SelectItem>
+                            <SelectItem value="Other">Other</SelectItem>
+                          </SelectContent>
+                        </Select>
                         <FormMessage />
                       </FormItem>
                     )}

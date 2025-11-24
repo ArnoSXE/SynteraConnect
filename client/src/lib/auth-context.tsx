@@ -7,6 +7,7 @@ interface User {
   id: string;
   name: string;
   type: UserType;
+  category?: string;
   email?: string;
 }
 
@@ -46,7 +47,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       id: '123',
       name: data.username || data.businessName || 'User',
       type,
-      email: data.email
+      email: data.email,
+      category: data.category
     };
     setUser(dummyUser);
     localStorage.setItem('syntera_user', JSON.stringify(dummyUser));

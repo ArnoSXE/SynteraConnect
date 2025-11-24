@@ -10,16 +10,14 @@ services:
     buildCommand: npm install && npm run build
     startCommand: node dist/index-prod.js
     plan: free
-
-    # If you have env vars:
     envVars:
       - key: NODE_ENV
         value: production
 
   # ======================
-  # FRONTEND REACT CLIENT
+  # FRONTEND (REACT + VITE)
   # ======================
-  - type: static
+  - type: static_site
     name: syntera-frontend
     rootDir: client
     buildCommand: npm install && npm run build
